@@ -21,7 +21,7 @@ for large p which your likely using this will blow up your computor, and with as
 l(β,σ^2) = P-T /2 - SUM t=p+1 to T {Xt - SUMj=1 to p βj Xt-j)^2 / 2σ^2 } 
 use computation techniques to minimise this value, this section was more of a fun fact bit ony 1,3 will be used.
 
-3)Yule Walker, need to assume stationary, let ɣ(h)= Cov(Xt, Xt-h), no β0
+3) Yule Walker, need to assume stationary, let ɣ(h)= Cov(Xt, Xt-h), no β0
 E{ Xt Xt-k } = E{ β1 Xt-1 Xt-k + β2 Xt-2 Xt-k +...+ βp Xt-p Xt-k + ℇt Xt-k} = β1 E(Xt-k Xt-1) +...+βp E(Xt-p Xt-k), E(ℇt Xt-k)=0 as white noise uncorrelated to past values
 => ɣ(k)= β1 ɣ(k-1) + β2 ɣ(k-2) +...+ βp ɣ(k-p)
 let β = (β1, β2,..., βp)' , 
@@ -36,6 +36,7 @@ let β = (β1, β2,..., βp)' ,
 
   Wow youre still here, lets acc code one up now; we will be using yfinance data on s&p AR(p) with closing price:
 ############################################################################################################################################
+'''
 #AR(p)
 
 import yfinance as yf #packages
@@ -45,7 +46,7 @@ import numpy as np
 T = 200 #how many past data points you will use 
 p = 5 #amount of beta terms 
 
-# Get data
+ Get data
 data = yf.download('^GSPC', start='2020-01-01', end='2025-06-15', interval='1d')
 X = data['Close'].tail(T).values  # convert to numpy array
 
@@ -98,6 +99,7 @@ if np.all(np.abs(roots) > 1):
     print("The AR process is stationary")
 else:
     print("The AR process is NOT stationary")
+    '''
 ############################################################################################################################################
 *1 going back to why if its in the roots are in the unit circle its not stationary just because its interesting:
 lets add a lag opperator L such that LXt = Xt-1, L Xt-1 = Xt-2 or L^2 = Xt-2
