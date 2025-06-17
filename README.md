@@ -1,4 +1,6 @@
-# ARMA(1,1) is a combination of AR(1) ie autocorrection model and MA(1) ie moving average.
+# ARMA(p,q)
+
+## is a combination of AR(1) ie autocorrection model, a model that predicts future values based on past values and their white noise, and MA(1) ie moving average that predicts future values based on past errors.
 
 intuitivly lets create an AR model first.
 AR:= a model that aims to express a time series as a function of its past values; Xt = β0 + β1 Xt-1 + β2 Xt-2 +...+ βp Xt-p +ℇt, ℇt ~ N(0, σ^2) as is a white noise.
