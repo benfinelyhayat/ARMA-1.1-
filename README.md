@@ -36,7 +36,7 @@ let β = (β1, β2,..., βp)' ,
 
   Wow youre still here, lets acc code one up now; we will be using yfinance data on s&p AR(p) with closing price:
 ############################################################################################################################################
-'''
+```
 #AR(p)
 
 import yfinance as yf #packages
@@ -99,7 +99,7 @@ if np.all(np.abs(roots) > 1):
     print("The AR process is stationary")
 else:
     print("The AR process is NOT stationary")
-    '''
+```
 ############################################################################################################################################
 *1 going back to why if its in the roots are in the unit circle its not stationary just because its interesting:
 lets add a lag opperator L such that LXt = Xt-1, L Xt-1 = Xt-2 or L^2 = Xt-2
