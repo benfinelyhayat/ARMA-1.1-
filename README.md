@@ -1,7 +1,7 @@
 # ARMA(p,q)
 
 ## is a combination of AR(1) ie autocorrection model, a model that predicts future values based on past values and their white noise, and MA(1) ie moving average that predicts future values based on past errors.
-
+#AR(p)
 intuitivly lets create an AR model first.
 AR:= a model that aims to express a time series as a function of its past values; Xt = β0 + β1 Xt-1 + β2 Xt-2 +...+ βp Xt-p +ℇt, ℇt ~ N(0, σ^2) as is a white noise.
 Stationarity:= a process is weakly stationary iff; E(X)=µ, Var(X)=σ^2, Cov(Xt, Xt-h) is dependent on h not t.
@@ -48,7 +48,7 @@ p = 5 #amount of beta terms
 
  Get data
 data = yf.download('^GSPC', start='2020-01-01', end='2025-06-15', interval='1d')
-X = data['Close'].tail(T).values  # convert to numpy array
+X = data['Adj Close'].tail(T).values  # convert to numpy array
 
 def sam_AC(X, h):  # Sample autocovariance function
     T = len(X)
@@ -109,3 +109,118 @@ Xt = Xt{ β1 L + β2 L^2 +...+ L^p} +ℇt, or moving to one side
 ℇt = β(L) Xt => Xt = β(L)^-1 ℇt, which is an infinite sum that will only converge if past shocks have diminishing effect which wont happen with roots within the unit circle.
   
 
+#MA(q)
+Mathematical Overview: AR(q) Estimation via Yule-Walker
+
+An **autoregressive process of order p**, AR(q), models a time series \( \{X_t\} \) as a linear function of its past values:
+
+\[
+X_t = \phi_1 X_{t-1} + \phi_2 X_{t-2} + \dots + \phi_p X_{t-p} + \varepsilon_t, \quad \varepsilon_t \sim \text{i.i.d. } (0, \sigma^2)
+\]
+
+where:
+- \( \phi_1, \dots, \phi_p \) are the autoregressive coefficients,
+- \( \varepsilon_t \) is a white noise process with constant variance \( \sigma^2 \).
+
+Sample Autocovariances
+
+We estimate this model by solving the **Yule-Walker equations**, which relate the model parameters to the autocovariance function \( \gamma(h) = \text{Cov}(X_t, X_{t-h}) \):
+
+\[
+\gamma(h) = \sum_{k=1}^p \phi_k \gamma(h - k), \quad h = 1, \dots, p
+\]
+
+This yields a system of \( p \) equations in \( p \) unknowns, which can be written compactly as:
+
+\[
+\boldsymbol{\Gamma}_p \boldsymbol{\phi} = \boldsymbol{\gamma}_p
+\]
+
+where:
+- \( \boldsymbol{\Gamma}_p \in \mathbb{R}^{p \times p} \) is a **Toeplitz matrix** of autocovariances \( \gamma(|i-j|) \),
+- \( \boldsymbol{\gamma}_p = [\gamma(1), \dots, \gamma(p)]^\top \),
+- \( \boldsymbol{\phi} = [\phi_1, \dots, \phi_p]^\top \) are the AR coefficients.
+
+We estimate \( \phi \) by solving this system:
+
+\[
+\hat{\boldsymbol{\phi}} = \boldsymbol{\Gamma}_p^{-1} \boldsymbol{\gamma}_p
+\]
+
+The **innovation variance** \( \sigma^2 \) is then estimated as:
+
+\[
+\hat{\sigma}^2 = \gamma(0) - \boldsymbol{\gamma}_p^\top \hat{\boldsymbol{\phi}}
+\]
+
+### Stationarity
+
+The AR(p) process is **stationary** if all roots of the characteristic polynomial:
+
+\[
+\Phi(z) = 1 - \phi_1 z - \phi_2 z^2 - \dots - \phi_p z^p
+\]
+
+lie **outside the unit circle**, i.e., \( |z_i| > 1 \) for all \( i \). This condition is checked numerically after estimation.
+
+```
+#MA(p)
+import yfinance as yf
+import numpy as np
+
+# --- Parameters
+T = 50     # number of time periods
+p = 2     # <-- SET AR order here
+
+# --- Step 1: Get data
+data = yf.download('^GSPC', start='2020-01-01', end='2025-06-15', interval='1d')
+X = data['Close'].tail(T).values  # Convert to numpy array
+
+# --- Step 2: Sample autocovariance function
+def sam_AC(X, h):
+    T = len(X)
+    Xbar = np.mean(X)
+    cov = np.sum((X[h:] - Xbar) * (X[:-h] - Xbar)) if h > 0 else np.sum((X - Xbar)**2)
+    return cov / T
+
+# --- Step 3: Toeplitz matrix constructor
+def toeplitz(c):
+    n = len(c)
+    TP = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            TP[i, j] = c[abs(i - j)]
+    return TP
+
+# --- Step 4: Yule-Walker estimation
+def YW(X, p):
+    gamma = np.array([sam_AC(X, h) for h in range(p + 1)])  # γ₀ to γ_p
+    Gamma_p = toeplitz(gamma[:-1]) # shape (p, p)
+    gamma_p = gamma[1:]            # shape (p,)
+
+    beta_hat = np.linalg.solve(Gamma_p, gamma_p)  # AR coefficients
+    sigma2 = gamma[0] - np.dot(beta_hat, gamma_p) # Innovation variance
+
+    return beta_hat, sigma2
+
+# --- Step 5: Run estimation
+beta_hat, sigma2 = YW(X, p)
+print(f"\n--- AR({p}) Yule-Walker Estimation ---")
+print("Estimated AR coefficients (beta_hat):", beta_hat)
+print("Estimated white noise variance (sigma^2):", sigma2)
+
+# --- Step 6: Stationarity check
+poly_coefs = np.concatenate(([1], -beta_hat))  # Φ(L) = 1 - β₁L - β₂L² ...
+roots = np.roots(poly_coefs)
+moduli = np.abs(roots)
+
+print("\nRoots of the characteristic polynomial:", roots)
+print("Moduli of roots:", moduli)
+
+if np.all(moduli > 1):
+    print("The AR process is STATIONARY")
+else:
+    print("The AR process is NOT stationary")
+```
+Now time to combine them:
+Xt = θ_hat (L) et and Xt = β_hat(L) Xt
